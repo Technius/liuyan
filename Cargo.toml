@@ -12,4 +12,9 @@ diesel = { version = "0.11.0", features = ["sqlite"] }
 diesel_codegen = { version = "0.11.0", features = ["sqlite"] }
 config = { version = "0.4", default-features = false, features = ["yaml"] }
 serde = "0.9.12"
+serde_json = "0.9.9"
 serde_derive = "0.9.12"
+params = "0.6.0"
+time = "0.1.36"
+base64 = "0.4.1"
+iron-sessionstorage = "0.6.6"
