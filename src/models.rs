@@ -1,31 +1,42 @@
 use ijr::JsonResponse;
+use schema::*;
 
-#[derive(Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize)]
 pub struct User {
     pub id: i32,
     pub username: String,
 }
 
-#[derive(Queryable, Serialize)]
+#[derive(Insertable)]
+#[table_name="users"]
+pub struct NewUser {
+    pub username: String
+}
+
+#[derive(Debug, Queryable, Serialize)]
 pub struct Thread {
     pub id: i32,
     pub slug: String,
 }
 
-#[derive(Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize)]
 pub struct Comment {
     pub id: i32,
     pub author: i32,
     pub content: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub enum ApiData {
     #[serde(rename = "threads")]
-    Threads(Vec<Thread>)
+    Threads(Vec<Thread>),
+    #[serde(rename = "users")]
+    Users(Vec<User>),
+    #[serde(rename = "user")]
+    UserCreated(User)
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ApiResponse {
     pub data: ApiData
 }

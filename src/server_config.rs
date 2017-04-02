@@ -4,6 +4,7 @@ pub struct Config {
     pub host: String,
     pub port: u16,
     pub db_url: String,
+    pub secret: Vec<u8>
 }
 
 impl Config {
@@ -21,10 +22,13 @@ impl Config {
             .ok_or("Invalid or missing http.port key")? as u16;
         let db_url: String = cfg.get_str("db.url")
             .ok_or("Invalid or missing db.url key")?;
+        let secret: String = cfg.get_str("server.secret")
+            .ok_or("Invalid or missing secret")?;
         Ok(Config {
                host: host,
                port: port,
                db_url: db_url,
+               secret: secret.as_bytes().to_vec()
            })
     }
 }
