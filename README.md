@@ -12,7 +12,9 @@ TODO:
 ## Building
 
 First, make sure `diesel_cli` is installed with `cargo`. Then, run `diesel_cli
-migration run` to generate the database. Finally, build with `cargo build`.
+migration run` to generate the database schema. Make sure you have an instance
+of `postgres` running; a `docker-compose.yml` file is provided to quickly start
+up `postgres`.Finally, build with `cargo build`.
 
 ## License
 Copyright 2017 Bryan Tan

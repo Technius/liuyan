@@ -1,39 +1,39 @@
 use diesel::Connection;
-use diesel::sqlite::SqliteConnection;
+use diesel::pg::PgConnection;
 use iron::prelude::*;
 use iron;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-pub struct SqliteMiddleware {
-    pub db_conn: Arc<Mutex<SqliteConnection>>
+pub struct DatabaseMiddleware {
+    pub db_conn: Arc<Mutex<PgConnection>>
 }
 
-impl SqliteMiddleware {
-    pub fn new(url: &str) -> SqliteMiddleware {
-        SqliteMiddleware {
-            db_conn: Arc::new(Mutex::new(SqliteConnection::establish(url).unwrap()))
+impl DatabaseMiddleware {
+    pub fn new(url: &str) -> DatabaseMiddleware {
+        DatabaseMiddleware {
+            db_conn: Arc::new(Mutex::new(PgConnection::establish(url).unwrap()))
         }
     }
 }
 
-impl iron::typemap::Key for SqliteMiddleware {
-    type Value = Arc<Mutex<SqliteConnection>>;
+impl iron::typemap::Key for DatabaseMiddleware {
+    type Value = Arc<Mutex<PgConnection>>;
 }
 
-impl iron::middleware::BeforeMiddleware for SqliteMiddleware {
+impl iron::middleware::BeforeMiddleware for DatabaseMiddleware {
     fn before(&self, req: &mut Request) -> IronResult<()> {
-        req.extensions.insert::<SqliteMiddleware>(self.db_conn.clone());
+        req.extensions.insert::<DatabaseMiddleware>(self.db_conn.clone());
         Ok(())
     }
 }
 
-pub trait SqlExt {
-    fn db_conn(&self) -> MutexGuard<SqliteConnection>;
+pub trait DatabaseExt {
+    fn db_conn(&self) -> MutexGuard<PgConnection>;
 }
 
-impl<'a, 'b> SqlExt for Request<'a, 'b> {
-    fn db_conn(&self) -> MutexGuard<SqliteConnection> {
-        let arc = self.extensions.get::<SqliteMiddleware>().unwrap();
+impl<'a, 'b> DatabaseExt for Request<'a, 'b> {
+    fn db_conn(&self) -> MutexGuard<PgConnection> {
+        let arc = self.extensions.get::<DatabaseMiddleware>().unwrap();
         arc.lock().unwrap()
     }
 }

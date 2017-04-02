@@ -42,7 +42,7 @@ fn start_server(config: &Config) {
     let mount = routes::create();
     let url = format!("{}:{}", config.host, config.port);
     let mut chain = Chain::new(mount);
-    chain.link_before(middleware::SqliteMiddleware::new(config.db_url.as_str()));
+    chain.link_before(middleware::DatabaseMiddleware::new(config.db_url.as_str()));
     chain.link_around(SessionStorage::new(SignedCookieBackend::new(config.secret.clone())));
     chain.link_after(JsonResponseMiddleware {});
     let start_status = Iron::new(chain).http(&url);

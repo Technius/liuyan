@@ -8,8 +8,8 @@ iron = "0.5.1"
 router = "0.5.1"
 mount = "0.3.0"
 iron-json-response = "0.4.0"
-diesel = { version = "0.11.0", features = ["sqlite"] }
-diesel_codegen = { version = "0.11.0", features = ["sqlite"] }
+diesel = { version = "0.11.0", features = ["postgres"] }
+diesel_codegen = { version = "0.11.0", features = ["postgres"] }
 config = { version = "0.4", default-features = false, features = ["yaml"] }
 serde = "0.9.12"
 serde_json = "0.9.9"

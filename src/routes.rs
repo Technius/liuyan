@@ -7,7 +7,7 @@ use params;
 use params::FromValue;
 
 use models::*;
-use middleware::SqlExt;
+use middleware::DatabaseExt;
 use iron_sessionstorage::SessionRequestExt;
 
 macro_rules! require_login {
