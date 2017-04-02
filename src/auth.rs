@@ -4,8 +4,14 @@ pub struct SessionData {
     pub user_id: i32
 }
 
+impl SessionData {
+    pub fn new(id: i32) -> Self {
+        SessionData { user_id: id }
+    }
+}
+
 impl iron_sessionstorage::Value for SessionData {
-    fn get_key() -> &'static str { "liuyan-session" }
+    fn get_key() -> &'static str { "X-Liuyan-Session" }
 
     fn into_raw(self) -> String { format!("{}", self.user_id) }
 

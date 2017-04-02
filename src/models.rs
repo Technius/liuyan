@@ -33,7 +33,9 @@ pub enum ApiData {
     #[serde(rename = "users")]
     Users(Vec<User>),
     #[serde(rename = "user")]
-    UserCreated(User)
+    UserCreated(User),
+    #[serde(rename = "user")]
+    UserLoggedIn(User),
 }
 
 #[derive(Debug, Serialize)]
@@ -46,7 +48,7 @@ impl ApiResponse {
         ApiResponse { data: data }
     }
 
-    pub fn json_response(data: ApiData) -> JsonResponse {
+    pub fn json(data: ApiData) -> JsonResponse {
         JsonResponse::json(ApiResponse::new(data))
     }
 }

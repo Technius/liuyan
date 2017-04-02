@@ -45,6 +45,7 @@ fn start_server(config: &Config) {
     chain.link_before(middleware::DatabaseMiddleware::new(config.db_url.as_str()));
     chain.link_around(SessionStorage::new(SignedCookieBackend::new(config.secret.clone())));
     chain.link_after(JsonResponseMiddleware {});
+    chain.link_after(middleware::DeleteCookieMiddleware {});
     let start_status = Iron::new(chain).http(&url);
     match start_status {
         Ok(_) => {

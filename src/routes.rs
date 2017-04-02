@@ -1,14 +1,17 @@
 use iron::prelude::*;
 use iron::status;
+use iron_sessionstorage::SessionRequestExt;
 use router::Router;
 use mount::Mount;
+use diesel;
+use diesel::associations::HasTable;
 use diesel::prelude::*;
 use params;
 use params::FromValue;
 
 use models::*;
 use middleware::DatabaseExt;
-use iron_sessionstorage::SessionRequestExt;
+use auth::SessionData;
 
 macro_rules! require_login {
     ($req:ident) => {
@@ -36,9 +39,8 @@ fn thread() -> Router {
     let mut router = Router::new();
     use schema::threads::dsl::*;
     router.get("/", |req: &mut Request| {
-        let c = req.db_conn();
-        let xs = itry!(threads.load::<Thread>(&*c));
-        let response = ApiResponse::json_response(ApiData::Threads(xs));
+        let xs = itry!(threads.load::<Thread>(&*req.db_conn()));
+        let response = ApiResponse::json(ApiData::Threads(xs));
         Ok(Response::with((status::Ok, response)))
     }, "dir");
     router
@@ -50,29 +52,36 @@ fn user() -> Router {
     router.get("/", |req: &mut Request| {
         let c = req.db_conn();
         let xs = itry!(users.load::<User>(&*c));
-        let response = ApiResponse::json_response(ApiData::Users(xs));
+        let response = ApiResponse::json(ApiData::Users(xs));
         Ok(Response::with((status::Ok, response)))
     }, "dir");
+    router.get("/testLogin", |req: &mut Request| {
+        let sd = require_login!(req);
+        Ok(Response::with((status::Ok, format!("id: {}", sd.user_id))))
+    }, "testlogin");
     router.get("/register", |req: &mut Request| {
         req.session().clear().expect("Failed to clear session");
         let name = get_param::<String>("username", req);
         let name = iexpect!(name, (status::BadRequest, "missing username parameter"));
-        // TODO: Fix this. sqlite is incompatible with get_result
-        // let c = req.db_conn();
-        // let new_user = NewUser { username: name };
-        // let user = diesel::insert(&new_user)
-        //     .into(users::table())
-        //     .get_result(&*c)
-        //     .expect("Failed to create user");
-        // let response = ApiResponse::json_response(ApiData::UserCreated(user));
-        // Ok(Response::with((status::Created, response)))
-        Ok(Response::with((status::Ok, "Todo")))
+        let new_user = NewUser { username: name };
+        let user = diesel::insert(&new_user)
+            .into(users::table())
+            .get_result::<User>(&*req.db_conn())
+            .expect("Failed to create user");
+        req.session().set(SessionData::new(user.id)).unwrap();
+        let response = ApiResponse::json(ApiData::UserCreated(user));
+        Ok(Response::with((status::Created, response)))
     }, "register");
     router.get("/login", |req: &mut Request| {
-        Ok(Response::with((status::Ok, "foo")))
+        let uid = iexpect!(get_param::<i32>("id", req), (status::BadRequest, "missing id"));
+        let user = itry!(users.find(uid).first::<User>(&*req.db_conn()), status::NotFound);
+        req.session().set(SessionData::new(uid)).unwrap();
+        let response = ApiResponse::json(ApiData::UserLoggedIn(user));
+        Ok(Response::with((status::Ok, response)))
     }, "login");
     router.get("/logout", |req: &mut Request| {
-        req.session().clear().expect("Failed to clear session");
+        require_login!(req);
+        try!(req.session().clear());
         Ok(Response::with((status::Ok, "logged out")))
     }, "logout");
     router
