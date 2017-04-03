@@ -7,12 +7,6 @@ pub struct User {
     pub username: String,
 }
 
-#[derive(Insertable)]
-#[table_name="users"]
-pub struct NewUser {
-    pub username: String
-}
-
 #[derive(Debug, Queryable, Serialize)]
 pub struct Thread {
     pub id: i32,
@@ -24,6 +18,12 @@ pub struct Comment {
     pub id: i32,
     pub author: i32,
     pub content: String,
+}
+
+#[derive(Insertable)]
+#[table_name="users"]
+pub struct NewUser {
+    pub username: String
 }
 
 #[derive(Debug, Serialize)]

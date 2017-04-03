@@ -9,9 +9,9 @@ use diesel::prelude::*;
 use params;
 use params::FromValue;
 
-use models::*;
-use middleware::DatabaseExt;
 use auth::SessionData;
+use middleware::DatabaseExt;
+use models::*;
 
 macro_rules! require_login {
     ($req:ident) => {
@@ -36,29 +36,34 @@ pub fn create() -> Mount {
 }
 
 fn thread() -> Router {
-    let mut router = Router::new();
     use schema::threads::dsl::*;
+    let mut router = Router::new();
+
     router.get("/", |req: &mut Request| {
         let xs = itry!(threads.load::<Thread>(&*req.db_conn()));
         let response = ApiResponse::json(ApiData::Threads(xs));
         Ok(Response::with((status::Ok, response)))
     }, "dir");
+
     router
 }
 
 fn user() -> Router {
-    let mut router = Router::new();
     use schema::users::dsl::*;
+    let mut router = Router::new();
+
     router.get("/", |req: &mut Request| {
         let c = req.db_conn();
         let xs = itry!(users.load::<User>(&*c));
         let response = ApiResponse::json(ApiData::Users(xs));
         Ok(Response::with((status::Ok, response)))
     }, "dir");
+
     router.get("/testLogin", |req: &mut Request| {
         let sd = require_login!(req);
         Ok(Response::with((status::Ok, format!("id: {}", sd.user_id))))
     }, "testlogin");
+
     router.get("/register", |req: &mut Request| {
         req.session().clear().expect("Failed to clear session");
         let name = get_param::<String>("username", req);
@@ -72,6 +77,7 @@ fn user() -> Router {
         let response = ApiResponse::json(ApiData::UserCreated(user));
         Ok(Response::with((status::Created, response)))
     }, "register");
+
     router.get("/login", |req: &mut Request| {
         let uid = iexpect!(get_param::<i32>("id", req), (status::BadRequest, "missing id"));
         let user = itry!(users.find(uid).first::<User>(&*req.db_conn()), status::NotFound);
@@ -79,10 +85,12 @@ fn user() -> Router {
         let response = ApiResponse::json(ApiData::UserLoggedIn(user));
         Ok(Response::with((status::Ok, response)))
     }, "login");
+
     router.get("/logout", |req: &mut Request| {
         require_login!(req);
         try!(req.session().clear());
         Ok(Response::with((status::Ok, "logged out")))
     }, "logout");
+
     router
 }
