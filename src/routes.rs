@@ -30,7 +30,7 @@ fn get_param<T: FromValue>(name: &str, req: &mut Request) -> Option<T> {
 
 pub fn create() -> Mount {
     let mut mount = Mount::new();
-    mount.mount("/", thread());
+    mount.mount("/threads", thread());
     mount.mount("/users", user());
     mount
 }
