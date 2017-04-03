@@ -1,13 +1,7 @@
 # Liuyan
 
-A lightweight comment server written in Rust. Currently a work-in-progress.
-
-TODO:
-
-- [ ] Thread endpoint
-- [ ] User endpoint
-- [ ] Comment endpoint
-- [ ] Basic posting functionality
+A lightweight comment server written in Rust. Currently a work-in-progress, not
+ready for production use.
 
 ## Building
 
@@ -15,6 +9,21 @@ First, make sure `diesel_cli` is installed with `cargo`. Then, run `diesel_cli
 migration run` to generate the database schema. Make sure you have an instance
 of `postgres` running; a `docker-compose.yml` file is provided to quickly start
 up `postgres`.Finally, build with `cargo build`.
+
+## TODO
+
+- [x] Thread endpoint
+- [x] User endpoint
+- [ ] Comment endpoint
+- [ ] Basic posting functionality
+- [ ] CORS with configuration options
+- [ ] Email integration: verification and reply-posting
+- [ ] Optional voting/points system
+- [ ] Implement a comment form for end-users
+- [ ] Use `r2d2` instead of a `Mutex`'d connection
+- [ ] Offer redis option for sessions
+- [ ] Packaging
+- [ ] Write rustdocs and usage
 
 ## License
 Copyright 2017 Bryan Tan

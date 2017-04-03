@@ -45,6 +45,17 @@ fn thread() -> Router {
         Ok(Response::with((status::Ok, response)))
     }, "thread_list");
 
+    router.post("/", |req: &mut Request| {
+        require_login!(req);
+        let p_slug = iexpect!(get_param("slug", req), (status::BadRequest, "missing slug"));
+        let t = diesel::insert(&NewThread { slug: p_slug })
+            .into(threads::table())
+            .get_result(&*req.db_conn())
+            .expect("Failed to create thread");
+        let res = ApiResponse::json(ApiData::ThreadCreated(t));
+        Ok(Response::with((status::Created, res)))
+    }, "thread_create");
+
     router
 }
 

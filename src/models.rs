@@ -26,10 +26,18 @@ pub struct NewUser {
     pub username: String
 }
 
+#[derive(Insertable)]
+#[table_name="threads"]
+pub struct NewThread {
+    pub slug: String
+}
+
 #[derive(Debug, Serialize)]
 pub enum ApiData {
     #[serde(rename = "threads")]
     Threads(Vec<Thread>),
+    #[serde(rename = "thread")]
+    ThreadCreated(Thread),
     #[serde(rename = "users")]
     Users(Vec<User>),
     #[serde(rename = "user")]
