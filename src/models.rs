@@ -16,6 +16,7 @@ pub struct Thread {
 #[derive(Debug, Queryable, Serialize)]
 pub struct Comment {
     pub id: i32,
+    pub thread: i32,
     pub author: i32,
     pub content: String,
 }
