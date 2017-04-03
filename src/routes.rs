@@ -43,7 +43,7 @@ fn thread() -> Router {
         let xs = itry!(threads.load::<Thread>(&*req.db_conn()));
         let response = ApiResponse::json(ApiData::Threads(xs));
         Ok(Response::with((status::Ok, response)))
-    }, "dir");
+    }, "thread_list");
 
     router
 }
@@ -57,12 +57,12 @@ fn user() -> Router {
         let xs = itry!(users.load::<User>(&*c));
         let response = ApiResponse::json(ApiData::Users(xs));
         Ok(Response::with((status::Ok, response)))
-    }, "dir");
+    }, "user_list");
 
     router.get("/testLogin", |req: &mut Request| {
         let sd = require_login!(req);
         Ok(Response::with((status::Ok, format!("id: {}", sd.user_id))))
-    }, "testlogin");
+    }, "user_testlogin");
 
     router.get("/register", |req: &mut Request| {
         req.session().clear().expect("Failed to clear session");
@@ -76,7 +76,7 @@ fn user() -> Router {
         req.session().set(SessionData::new(user.id)).unwrap();
         let response = ApiResponse::json(ApiData::UserCreated(user));
         Ok(Response::with((status::Created, response)))
-    }, "register");
+    }, "user_register");
 
     router.get("/login", |req: &mut Request| {
         let uid = iexpect!(get_param::<i32>("id", req), (status::BadRequest, "missing id"));
@@ -84,13 +84,13 @@ fn user() -> Router {
         req.session().set(SessionData::new(uid)).unwrap();
         let response = ApiResponse::json(ApiData::UserLoggedIn(user));
         Ok(Response::with((status::Ok, response)))
-    }, "login");
+    }, "user_login");
 
     router.get("/logout", |req: &mut Request| {
         require_login!(req);
         try!(req.session().clear());
         Ok(Response::with((status::Ok, "logged out")))
-    }, "logout");
+    }, "user_logout");
 
     router
 }
