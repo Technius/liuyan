@@ -8,6 +8,7 @@ use diesel::associations::HasTable;
 use diesel::prelude::*;
 use params;
 use params::FromValue;
+use std::str::FromStr;
 
 use auth::SessionData;
 use middleware::DatabaseExt;
@@ -28,6 +29,10 @@ fn get_param<T: FromValue>(name: &str, req: &mut Request) -> Option<T> {
         .and_then(|v| T::from_value(v))
 }
 
+fn get_segment<T: FromStr>(name: &str, req: &Request) -> Result<T, T::Err> {
+    req.extensions.get::<Router>().unwrap()[name].parse::<T>()
+}
+
 pub fn create() -> Mount {
     let mut mount = Mount::new();
     mount.mount("/threads", thread());
@@ -37,6 +42,7 @@ pub fn create() -> Mount {
 
 fn thread() -> Router {
     use schema::threads::dsl::*;
+    use schema::comments::dsl::*;
     let mut router = Router::new();
 
     router.get("/", |req: &mut Request| {
@@ -55,6 +61,39 @@ fn thread() -> Router {
         let res = ApiResponse::json(ApiData::ThreadCreated(t));
         Ok(Response::with((status::Created, res)))
     }, "thread_create");
+
+    router.get("/:id", |req: &mut Request| {
+        let tid = itry!(get_segment::<i32>("id", req), status::NotFound);
+        let t = itry!(threads.find(tid).first(&*req.db_conn()), status::NotFound);
+        use schema::comments::dsl::id; // ugly, but avoids ambiguity
+        let cs = comments.filter(thread.eq(tid))
+            .order(id.desc())
+            .load(&*req.db_conn())
+            .unwrap();
+        let response = ApiResponse::json(ApiData::ThreadShow { thread: t, comments: cs });
+        Ok(Response::with((status::Ok, response)))
+    }, "thread_show");
+
+    router.post("/:id", |req: &mut Request| {
+        let session = require_login!(req);
+        let tid = itry!(get_segment::<i32>("id", req), status::NotFound);
+        let p_content = iexpect!(get_param::<String>("content", req), (status::BadRequest, "missing content"));
+        if p_content.is_empty() {
+            return Ok(Response::with((status::BadRequest, "content is blank")));
+        }
+        let _ = itry!(threads.find(tid).first::<Thread>(&*req.db_conn()), status::NotFound);
+        let new_comment = NewComment {
+            thread: tid,
+            author: session.user_id,
+            content: p_content
+        };
+        let cmt = diesel::insert(&new_comment)
+            .into(comments)
+            .get_result::<Comment>(&*req.db_conn())
+            .unwrap();
+        let response = ApiResponse::json(ApiData::CommentPost(cmt));
+        Ok(Response::with((status::Ok, response)))
+    }, "thread_comment_post");
 
     router
 }

@@ -33,12 +33,28 @@ pub struct NewThread {
     pub slug: String
 }
 
+#[derive(Insertable)]
+#[table_name="comments"]
+pub struct NewComment {
+    pub thread: i32,
+    pub author: i32,
+    pub content: String
+}
+
 #[derive(Debug, Serialize)]
 pub enum ApiData {
     #[serde(rename = "threads")]
     Threads(Vec<Thread>),
     #[serde(rename = "thread")]
     ThreadCreated(Thread),
+    #[serde(rename = "thread")]
+    ThreadShow {
+        #[serde(rename = "info")]
+        thread: Thread,
+        comments: Vec<Comment>
+    },
+    #[serde(rename = "comment")]
+    CommentPost(Comment),
     #[serde(rename = "users")]
     Users(Vec<User>),
     #[serde(rename = "user")]
