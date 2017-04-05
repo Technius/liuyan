@@ -3,9 +3,6 @@ use iron::status;
 use iron_sessionstorage::SessionRequestExt;
 use router::Router;
 use mount::Mount;
-use diesel;
-use diesel::associations::HasTable;
-use diesel::prelude::*;
 use params;
 use params::FromValue;
 use std::str::FromStr;
@@ -13,6 +10,7 @@ use std::str::FromStr;
 use auth::SessionData;
 use middleware::DatabaseExt;
 use models::*;
+use repo;
 
 macro_rules! require_login {
     ($req:ident) => {
@@ -41,12 +39,10 @@ pub fn create() -> Mount {
 }
 
 fn thread() -> Router {
-    use schema::threads::dsl::*;
-    use schema::comments::dsl::*;
     let mut router = Router::new();
 
     router.get("/", |req: &mut Request| {
-        let xs = itry!(threads.load::<Thread>(&*req.db_conn()));
+        let xs = itry!(repo::thread::list(&*req.db_conn()));
         let response = ApiResponse::json(ApiData::Threads(xs));
         Ok(Response::with((status::Ok, response)))
     }, "thread_list");
@@ -54,44 +50,32 @@ fn thread() -> Router {
     router.post("/", |req: &mut Request| {
         require_login!(req);
         let p_slug = iexpect!(get_param("slug", req), (status::BadRequest, "missing slug"));
-        let t = diesel::insert(&NewThread { slug: p_slug })
-            .into(threads::table())
-            .get_result(&*req.db_conn())
-            .expect("Failed to create thread");
+        let t = itry!(repo::thread::create(p_slug, &*req.db_conn()));
         let res = ApiResponse::json(ApiData::ThreadCreated(t));
         Ok(Response::with((status::Created, res)))
     }, "thread_create");
 
     router.get("/:id", |req: &mut Request| {
-        let tid = itry!(get_segment::<i32>("id", req), status::NotFound);
-        let t = itry!(threads.find(tid).first(&*req.db_conn()), status::NotFound);
-        use schema::comments::dsl::id; // ugly, but avoids ambiguity
-        let cs = comments.filter(thread.eq(tid))
-            .order(id.desc())
-            .load(&*req.db_conn())
-            .unwrap();
-        let response = ApiResponse::json(ApiData::ThreadShow { thread: t, comments: cs });
+        let thread_id = itry!(get_segment::<i32>("id", req), status::NotFound);
+        let thread = itry!(repo::thread::find_by_id(thread_id, &*req.db_conn()), status::NotFound);
+        let comments = itry!(repo::thread::list_comments(thread_id, &*req.db_conn()));
+        let response = ApiResponse::json(ApiData::ThreadShow { thread: thread, comments: comments });
         Ok(Response::with((status::Ok, response)))
     }, "thread_show");
 
     router.post("/:id", |req: &mut Request| {
         let session = require_login!(req);
-        let tid = itry!(get_segment::<i32>("id", req), status::NotFound);
-        let p_content = iexpect!(get_param::<String>("content", req), (status::BadRequest, "missing content"));
-        if p_content.is_empty() {
+        let thread_id = itry!(get_segment::<i32>("id", req), status::NotFound);
+        let content = iexpect!(get_param::<String>("content", req), (status::BadRequest, "missing content"));
+
+        if content.is_empty() {
             return Ok(Response::with((status::BadRequest, "content is blank")));
         }
-        let _ = itry!(threads.find(tid).first::<Thread>(&*req.db_conn()), status::NotFound);
-        let new_comment = NewComment {
-            thread: tid,
-            author: session.user_id,
-            content: p_content
-        };
-        let cmt = diesel::insert(&new_comment)
-            .into(comments)
-            .get_result::<Comment>(&*req.db_conn())
-            .unwrap();
-        let response = ApiResponse::json(ApiData::CommentPost(cmt));
+
+        // Check if thread exists, first
+        let _ = itry!(repo::thread::find_by_id(thread_id, &*req.db_conn()), status::NotFound);
+        let comment = itry!(repo::thread::comment_post(thread_id, session.user_id, content, &*req.db_conn()));
+        let response = ApiResponse::json(ApiData::CommentPost(comment));
         Ok(Response::with((status::Ok, response)))
     }, "thread_comment_post");
 
@@ -99,12 +83,10 @@ fn thread() -> Router {
 }
 
 fn user() -> Router {
-    use schema::users::dsl::*;
     let mut router = Router::new();
 
     router.get("/", |req: &mut Request| {
-        let c = req.db_conn();
-        let xs = itry!(users.load::<User>(&*c));
+        let xs = itry!(repo::user::list(&*req.db_conn()));
         let response = ApiResponse::json(ApiData::Users(xs));
         Ok(Response::with((status::Ok, response)))
     }, "user_list");
@@ -118,11 +100,7 @@ fn user() -> Router {
         req.session().clear().expect("Failed to clear session");
         let name = get_param::<String>("username", req);
         let name = iexpect!(name, (status::BadRequest, "missing username parameter"));
-        let new_user = NewUser { username: name };
-        let user = diesel::insert(&new_user)
-            .into(users::table())
-            .get_result::<User>(&*req.db_conn())
-            .expect("Failed to create user");
+        let user = itry!(repo::user::register(name, &*req.db_conn()));
         req.session().set(SessionData::new(user.id)).unwrap();
         let response = ApiResponse::json(ApiData::UserCreated(user));
         Ok(Response::with((status::Created, response)))
@@ -130,7 +108,7 @@ fn user() -> Router {
 
     router.get("/login", |req: &mut Request| {
         let uid = iexpect!(get_param::<i32>("id", req), (status::BadRequest, "missing id"));
-        let user = itry!(users.find(uid).first::<User>(&*req.db_conn()), status::NotFound);
+        let user = itry!(repo::user::find_by_id(uid, &*req.db_conn()), status::NotFound);
         req.session().set(SessionData::new(uid)).unwrap();
         let response = ApiResponse::json(ApiData::UserLoggedIn(user));
         Ok(Response::with((status::Ok, response)))

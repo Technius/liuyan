@@ -25,6 +25,7 @@ mod routes;
 mod server_config;
 mod schema;
 mod models;
+mod repo;
 mod middleware;
 mod auth;
 
