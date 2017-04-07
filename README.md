@@ -22,7 +22,7 @@ up `postgres`.Finally, build with `cargo build`.
 - [ ] Email integration: verification and reply-posting
 - [ ] Optional voting/points system
 - [ ] Implement a comment form for end-users
-- [ ] Use `r2d2` instead of a `Mutex`'d connection
+- [x] Use `r2d2` instead of a `Mutex`'d connection
 - [ ] Offer redis option for sessions
 - [ ] Packaging
 - [ ] Write rustdocs and usage

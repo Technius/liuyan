@@ -1,41 +1,42 @@
-use diesel::Connection;
 use diesel::pg::PgConnection;
 use iron::prelude::*;
 use iron;
 use iron::middleware;
-use std::sync::{Arc, Mutex, MutexGuard};
+use r2d2::{Pool, PooledConnection};
+use r2d2_diesel::ConnectionManager;
+
+type DBPool = Pool<ConnectionManager<PgConnection>>;
 
 pub struct DatabaseMiddleware {
-    pub db_conn: Arc<Mutex<PgConnection>>
+    pub pool: DBPool
 }
 
 impl DatabaseMiddleware {
-    pub fn new(url: &str) -> DatabaseMiddleware {
+    pub fn new(pool: DBPool) -> DatabaseMiddleware {
         DatabaseMiddleware {
-            db_conn: Arc::new(Mutex::new(PgConnection::establish(url).unwrap()))
+            pool: pool
         }
     }
 }
 
 impl iron::typemap::Key for DatabaseMiddleware {
-    type Value = Arc<Mutex<PgConnection>>;
+    type Value = PooledConnection<ConnectionManager<PgConnection>>;
 }
 
 impl middleware::BeforeMiddleware for DatabaseMiddleware {
     fn before(&self, req: &mut Request) -> IronResult<()> {
-        req.extensions.insert::<DatabaseMiddleware>(self.db_conn.clone());
+        req.extensions.insert::<DatabaseMiddleware>(self.pool.get().unwrap());
         Ok(())
     }
 }
 
 pub trait DatabaseExt {
-    fn db_conn(&self) -> MutexGuard<PgConnection>;
+    fn db_conn(&self) -> &PgConnection;
 }
 
 impl<'a, 'b> DatabaseExt for Request<'a, 'b> {
-    fn db_conn(&self) -> MutexGuard<PgConnection> {
-        let arc = self.extensions.get::<DatabaseMiddleware>().unwrap();
-        arc.lock().unwrap()
+    fn db_conn(&self) -> &PgConnection {
+        self.extensions.get::<DatabaseMiddleware>().unwrap()
     }
 }
 

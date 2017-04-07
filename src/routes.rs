@@ -42,7 +42,7 @@ fn thread() -> Router {
     let mut router = Router::new();
 
     router.get("/", |req: &mut Request| {
-        let xs = itry!(repo::thread::list(&*req.db_conn()));
+        let xs = itry!(repo::thread::list(&req.db_conn()));
         let response = ApiResponse::json(ApiData::Threads(xs));
         Ok(Response::with((status::Ok, response)))
     }, "thread_list");
@@ -50,15 +50,16 @@ fn thread() -> Router {
     router.post("/", |req: &mut Request| {
         require_login!(req);
         let p_slug = iexpect!(get_param("slug", req), (status::BadRequest, "missing slug"));
-        let t = itry!(repo::thread::create(p_slug, &*req.db_conn()));
+        let t = itry!(repo::thread::create(p_slug, req.db_conn()));
         let res = ApiResponse::json(ApiData::ThreadCreated(t));
         Ok(Response::with((status::Created, res)))
     }, "thread_create");
 
     router.get("/:id", |req: &mut Request| {
+        let db = req.db_conn();
         let thread_id = itry!(get_segment::<i32>("id", req), status::NotFound);
-        let thread = itry!(repo::thread::find_by_id(thread_id, &*req.db_conn()), status::NotFound);
-        let comments = itry!(repo::thread::list_comments(thread_id, &*req.db_conn()));
+        let thread = itry!(repo::thread::find_by_id(thread_id, db), status::NotFound);
+        let comments = itry!(repo::thread::list_comments(thread_id, db));
         let response = ApiResponse::json(ApiData::ThreadShow { thread: thread, comments: comments });
         Ok(Response::with((status::Ok, response)))
     }, "thread_show");
@@ -72,9 +73,10 @@ fn thread() -> Router {
             return Ok(Response::with((status::BadRequest, "content is blank")));
         }
 
+        let db = req.db_conn();
         // Check if thread exists, first
-        let _ = itry!(repo::thread::find_by_id(thread_id, &*req.db_conn()), status::NotFound);
-        let comment = itry!(repo::thread::comment_post(thread_id, session.user_id, content, &*req.db_conn()));
+        let _ = itry!(repo::thread::find_by_id(thread_id, db), status::NotFound);
+        let comment = itry!(repo::thread::comment_post(thread_id, session.user_id, content, db));
         let response = ApiResponse::json(ApiData::CommentPost(comment));
         Ok(Response::with((status::Ok, response)))
     }, "thread_comment_post");
@@ -86,7 +88,7 @@ fn user() -> Router {
     let mut router = Router::new();
 
     router.get("/", |req: &mut Request| {
-        let xs = itry!(repo::user::list(&*req.db_conn()));
+        let xs = itry!(repo::user::list(req.db_conn()));
         let response = ApiResponse::json(ApiData::Users(xs));
         Ok(Response::with((status::Ok, response)))
     }, "user_list");
@@ -100,7 +102,7 @@ fn user() -> Router {
         req.session().clear().expect("Failed to clear session");
         let name = get_param::<String>("username", req);
         let name = iexpect!(name, (status::BadRequest, "missing username parameter"));
-        let user = itry!(repo::user::register(name, &*req.db_conn()));
+        let user = itry!(repo::user::register(name, req.db_conn()));
         req.session().set(SessionData::new(user.id)).unwrap();
         let response = ApiResponse::json(ApiData::UserCreated(user));
         Ok(Response::with((status::Created, response)))
@@ -108,7 +110,7 @@ fn user() -> Router {
 
     router.get("/login", |req: &mut Request| {
         let uid = iexpect!(get_param::<i32>("id", req), (status::BadRequest, "missing id"));
-        let user = itry!(repo::user::find_by_id(uid, &*req.db_conn()), status::NotFound);
+        let user = itry!(repo::user::find_by_id(uid, req.db_conn()), status::NotFound);
         req.session().set(SessionData::new(uid)).unwrap();
         let response = ApiResponse::json(ApiData::UserLoggedIn(user));
         Ok(Response::with((status::Ok, response)))
