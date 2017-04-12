@@ -16,9 +16,9 @@ up `postgres`.Finally, build with `cargo build`.
 - [x] User endpoint
 - [x] Comment endpoint
 - [x] Basic posting functionality
-- [ ] Refactor query code into separate modules
+- [x] Refactor query code into separate modules
 - [ ] Split up or modularize `routes.rs`
-- [ ] CORS with configuration options
+- [x] CORS with configuration options
 - [ ] Email integration: verification and reply-posting
 - [ ] Optional voting/points system
 - [ ] Implement a comment form for end-users

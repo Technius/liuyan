@@ -59,3 +59,22 @@ impl middleware::AfterMiddleware for DeleteCookieMiddleware {
         Ok(res)
     }
 }
+
+/// Middleware for inserting Access-Control-Allow-Origin header
+pub struct CorsMiddleware {
+    domain: String
+}
+impl CorsMiddleware {
+    pub fn new(domain: &String) -> CorsMiddleware {
+        CorsMiddleware {
+            domain: domain.clone()
+        }
+    }
+}
+impl middleware::AfterMiddleware for CorsMiddleware {
+    fn after(&self, _: &mut Request, mut res: Response) -> IronResult<Response> {
+        use iron::headers::AccessControlAllowOrigin;
+        res.headers.set(AccessControlAllowOrigin::Value(self.domain.clone()));
+        Ok(res)
+    }
+}

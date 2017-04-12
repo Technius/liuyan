@@ -57,6 +57,9 @@ fn start_server(config: &Config) {
     chain.link_around(SessionStorage::new(SignedCookieBackend::new(config.secret.clone())));
     chain.link_after(JsonResponseMiddleware {});
     chain.link_after(middleware::DeleteCookieMiddleware {});
+    if let Some(ref domain) = config.cors {
+        chain.link_after(middleware::CorsMiddleware::new(domain));
+    }
 
     let start_status = Iron::new(chain).http(&url);
     match start_status {

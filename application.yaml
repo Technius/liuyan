@@ -3,5 +3,6 @@ server:
 http:
   host: "localhost"
   port: 8080
+  cors: "http://localhost:3000"
 db:
   url: "postgresql://postgres@localhost:5432"
